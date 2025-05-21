@@ -1,0 +1,8 @@
+{
+  "name": "Octopus Energy Japan",
+  "render_readme": true,
+  "content_in_root": false,
+  "domains": ["sensor"],
+  "homeassistant": "2023.6.0",
+  "hacs": "1.0.0"
+} 
