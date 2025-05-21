@@ -1,0 +1,43 @@
+# Octopus Energy Japan 手动配置示例
+# 注意：建议使用界面配置集成，这种方式更简单且安全
+
+# 集成本身不需要在configuration.yaml中配置
+# 因为使用config_flow，所以可以完全通过用户界面配置
+
+# 如果您确实需要在YAML中设置，可以使用以下方式
+# （不推荐，因为将密码存储在配置文件中不安全）
+
+octopusenergy_jp:
+  # 可选：全局设置
+  # 注意：大多数设置应该通过UI配置
+
+# 传感器示例 - 如何通过模板展示或使用这些数据
+sensor:
+  - platform: template
+    sensors:
+      octopus_energy_yesterday_usage_kwh:
+        friendly_name: "昨日用电量"
+        unit_of_measurement: "kWh"
+        value_template: "{{ state_attr('sensor.octopus_energy_japan_a_xxxxxxxx_yesterdays_energy_usage', 'energy_usage') }}"
+        
+      octopus_energy_yesterday_cost_yen:
+        friendly_name: "昨日电费"
+        unit_of_measurement: "¥"
+        value_template: "{{ state_attr('sensor.octopus_energy_japan_a_xxxxxxxx_yesterdays_energy_cost', 'energy_cost') }}"
+
+# 自动化示例 - 每天早上获取新数据后发送通知
+automation:
+  - alias: "电力使用量通知"
+    trigger:
+      - platform: state
+        entity_id: sensor.octopus_energy_japan_a_xxxxxxxx_yesterdays_energy_usage
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state != 'unavailable' and trigger.to_state.state != 'unknown' }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "昨日电力使用报告"
+          message: >
+            昨日用电量：{{ states('sensor.octopus_energy_japan_a_xxxxxxxx_yesterdays_energy_usage') }} kWh，
+            费用：{{ states('sensor.octopus_energy_japan_a_xxxxxxxx_yesterdays_energy_cost') }} 日元 

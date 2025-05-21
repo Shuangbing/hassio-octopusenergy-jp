@@ -1,0 +1,36 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Account is already configured"
+    },
+    "error": {
+      "auth": "Failed to authenticate with Octopus Energy Japan. Please check your credentials.",
+      "connection": "Failed to connect to Octopus Energy Japan API.",
+      "unknown": "Unexpected error."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "account_number": "Account Number (e.g. A-XXXXXXXX)",
+          "scan_interval": "Data update interval (hours)"
+        },
+        "description": "Enter your Octopus Energy Japan credentials.",
+        "title": "Setup Octopus Energy Japan"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Data update interval (hours)"
+        },
+        "description": "Configure Octopus Energy Japan options.",
+        "title": "Octopus Energy Japan Options"
+      }
+    }
+  },
+  "title": "Octopus Energy Japan"
+} 
