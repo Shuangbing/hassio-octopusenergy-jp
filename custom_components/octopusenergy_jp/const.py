@@ -8,7 +8,7 @@ CONF_ACCOUNT_NUMBER = "account_number"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 # API
-API_ENDPOINT = "https://api.octopusenergy.jp/graphql"
+API_ENDPOINT = "https://api.oejp-kraken.energy/v1/graphql/"
 TOKEN_VALID_DURATION = 3600  # Token valid for 1 hour (3600 seconds)
 
 # Sensor
