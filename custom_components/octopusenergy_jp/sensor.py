@@ -145,7 +145,7 @@ class OctopusEnergyJPEnergySensor(OctopusEnergyJPSensorBase, SensorEntity):
         """Return the state attributes of the sensor."""
         return {
             "account_number": self._account_number,
-            "last_updated": self.coordinator.last_update_success_time,
+            "last_updated": self.coordinator.last_update,
         }
 
 
@@ -181,5 +181,5 @@ class OctopusEnergyJPCostSensor(OctopusEnergyJPSensorBase, SensorEntity):
         """Return the state attributes of the sensor."""
         return {
             "account_number": self._account_number,
-            "last_updated": self.coordinator.last_update_success_time,
+            "last_updated": self.coordinator.last_update,
         } 
