@@ -1,6 +1,6 @@
 """Sensor platform for Octopus Energy Japan integration."""
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any, Dict, List, Optional
 
 from homeassistant.components.sensor import (
@@ -62,9 +62,23 @@ async def async_setup_entry(
     )
 
     # 创建数据协调器
-    async def async_update_data() -> Dict[str, float]:
+    async def async_update_data() -> Dict[str, Any]:
         """Fetch data from API."""
-        return await api.async_get_yesterday_data()
+        # 获取昨天的总数据
+        yesterday_data = await api.async_get_yesterday_data()
+        
+        # 获取昨天的每小时数据
+        today_utc = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        yesterday_utc = today_utc - timedelta(days=1)
+        hourly_data = await api.async_get_hourly_data(yesterday_utc, today_utc)
+        
+        # 如果是首次安装，获取两周的数据
+        if not coordinator.data:
+            two_weeks_data = await api.async_get_two_weeks_data()
+            yesterday_data["two_weeks_data"] = two_weeks_data
+        
+        yesterday_data["hourly_data"] = hourly_data
+        return yesterday_data
 
     coordinator = DataUpdateCoordinator(
         hass,
@@ -81,6 +95,11 @@ async def async_setup_entry(
         OctopusEnergyJPEnergySensor(coordinator, entry, account_number),
         OctopusEnergyJPCostSensor(coordinator, entry, account_number),
     ]
+
+    # 更新传感器的每小时数据
+    if coordinator.data and "hourly_data" in coordinator.data:
+        for entity in entities:
+            entity.update_hourly_data(coordinator.data["hourly_data"])
 
     async_add_entities(entities, True)
 
@@ -132,6 +151,7 @@ class OctopusEnergyJPEnergySensor(OctopusEnergyJPSensorBase, SensorEntity):
         super().__init__(coordinator, config_entry, account_number)
         self._attr_unique_id = f"{account_number}_{ENERGY_USAGE_SENSOR}"
         self._attr_name = "Yesterday's Energy Usage"
+        self._hourly_datag = []
 
     @property
     def native_value(self) -> StateType:
@@ -143,10 +163,20 @@ class OctopusEnergyJPEnergySensor(OctopusEnergyJPSensorBase, SensorEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return the state attributes of the sensor."""
-        return {
+        attributes = {
             "account_number": self._account_number,
-            "last_updated": self.coordinator.last_update_success,
+            "last_updated": self.coordinator.last_update,
         }
+        
+        # Add hourly data if available
+        if self._hourly_data:
+            attributes["hourly_data"] = self._hourly_data
+            
+        return attributes
+
+    def update_hourly_data(self, hourly_data: List[Dict[str, Any]]) -> None:
+        """Update hourly data."""
+        self._hourly_data = hourly_data
 
 
 class OctopusEnergyJPCostSensor(OctopusEnergyJPSensorBase, SensorEntity):
@@ -168,6 +198,7 @@ class OctopusEnergyJPCostSensor(OctopusEnergyJPSensorBase, SensorEntity):
         super().__init__(coordinator, config_entry, account_number)
         self._attr_unique_id = f"{account_number}_{ENERGY_COST_SENSOR}"
         self._attr_name = "Yesterday's Energy Cost"
+        self._hourly_data = []
 
     @property
     def native_value(self) -> StateType:
@@ -179,7 +210,17 @@ class OctopusEnergyJPCostSensor(OctopusEnergyJPSensorBase, SensorEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return the state attributes of the sensor."""
-        return {
+        attributes = {
             "account_number": self._account_number,
-            "last_updated": self.coordinator.last_update_success,
-        } 
+            "last_updated": self.coordinator.last_update,
+        }
+        
+        # Add hourly data if available
+        if self._hourly_data:
+            attributes["hourly_data"] = self._hourly_data
+            
+        return attributes
+
+    def update_hourly_data(self, hourly_data: List[Dict[str, Any]]) -> None:
+        """Update hourly data."""
+        self._hourly_data = hourly_data 

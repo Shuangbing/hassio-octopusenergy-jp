@@ -202,4 +202,85 @@ class OctopusEnergyJP:
         return {
             "energy_usage": round(total_usage, 2),
             "energy_cost": round(total_cost, 2),
-        } 
+        }
+
+    async def async_get_hourly_data(self, start_at: datetime, end_at: datetime) -> List[Dict[str, Any]]:
+        """Get hourly electricity usage data."""
+        query = """
+        query getAccountMeasurements(
+            $propertyId: ID!
+            $first: Int!
+            $utilityFilters: [UtilityFiltersInput!]
+            $startAt: DateTime
+            $endAt: DateTime
+            $timezone: String
+        ) {
+            property(id: $propertyId) {
+                measurements(
+                    first: $first
+                    utilityFilters: $utilityFilters
+                    startAt: $startAt
+                    endAt: $endAt
+                    timezone: $timezone
+                ) {
+                    edges {
+                        node {
+                            value
+                            unit
+                            startAt
+                            endAt
+                            durationInSeconds
+                            metaData {
+                                statistics {
+                                    costExclTax {
+                                        pricePerUnit {
+                                            amount
+                                        }
+                                        costCurrency
+                                        estimatedAmount
+                                    }
+                                    costInclTax {
+                                        costCurrency
+                                        estimatedAmount
+                                    }
+                                    value
+                                    description
+                                    label
+                                    type
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+
+        variables = {
+            "propertyId": self.account_number,
+            "first": 100,
+            "startAt": start_at.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "endAt": end_at.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "timezone": "Asia/Tokyo",
+            "utilityFilters": [{
+                "electricityFilters": {
+                    "readingFrequencyType": "THIRTY_MIN_INTERVAL",
+                    "marketSupplyPointId": self.account_number,
+                    "readingDirection": "CONSUMPTION"
+                }
+            }]
+        }
+
+        try:
+            response = await self._graphql_request(query, variables)
+            measurements = response["data"]["property"]["measurements"]["edges"]
+            return [edge["node"] for edge in measurements]
+        except (KeyError, IndexError) as err:
+            _LOGGER.error("Failed to parse hourly data: %s", err)
+            return []
+
+    async def async_get_two_weeks_data(self) -> List[Dict[str, Any]]:
+        """Get two weeks of electricity usage data."""
+        end_at = datetime.utcnow()
+        start_at = end_at - timedelta(days=14)
+        return await self.async_get_hourly_data(start_at, end_at) 
